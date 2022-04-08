@@ -1,7 +1,8 @@
 class User {
-  constructor(id, socket) {
+  constructor(name, socket) {
     this.socket = socket
-    this.id = id
+    this.id = ''
+    this.name = name
     this.cards = []
     this.active = false
     this.dealer = false

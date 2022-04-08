@@ -1,8 +1,11 @@
+/* eslint-disable no-console */
 /* eslint-disable no-param-reassign */
 const express = require('express')
 
+const passport = require('passport')
 const mongoose = require('mongoose')
-const cookieSession = require('cookie-session')
+const cookieParser = require('cookie-parser')
+const session = require('express-session')
 const path = require('path')
 const dotenv = require('dotenv').config()
 
@@ -12,6 +15,8 @@ const io = require('socket.io')(http, { cors: { origin: '*' } })
 const Game = require('./code/game')
 const User = require('./code/user')
 
+const authRouter = require('./routes/auth')
+
 const app = express()
 const game = new Game()
 game.io = io
@@ -19,15 +24,38 @@ game.io = io
 const port = 3000
 const socketPort = 3001
 
-// mongoose.connect(process.env.MONGO_URI, {
-//   useNewUrlParser: true,
-//   useUnifiedTopology: true,
+mongoose.connect(process.env.MONGO_URI, {
+  useNewUrlParser: true,
+  useUnifiedTopology: true,
+})
+
+app.use(express.json())
+app.use(express.urlencoded({ extended: false }))
+app.use(cookieParser())
+app.use(express.static('dist'))
+app.use(session({
+  secret: 'super-secret-key',
+  resave: false,
+  saveUninitialized: false,
+}))
+
+app.use(passport.authenticate('session'))
+
+app.use('/', authRouter)
+
+// app.use((err, req, res, next) => {
+//   if (err) {
+//     res.status(500)
+//     return next(err)
+//   }
+//   return next()
 // })
 
 io.on('connection', socket => {
   const user = new User(new Date().toISOString(), socket)
-  socket.on('startGame', name => {
-    user.id = name
+  socket.on('startGame', ({ firstName, id }) => {
+    user.name = firstName
+    user.id = id
     game.users.push(user)
     if (!game.running) {
       game.freshstart = false
@@ -73,14 +101,6 @@ io.on('connection', socket => {
   })
 })
 
-app.use(express.static('dist'))
-app.use(express.json())
-
-app.use(cookieSession({
-  name: 'session',
-  keys: ['testKey'],
-}))
-
 app.use((err, req, res, next) => {
   if (err) {
     res.status(500)
@@ -106,14 +126,12 @@ http.listen(socketPort, () => {
 })
 
 app.listen(port, () => {
-  // eslint-disable-next-line no-console
   console.log(`App running on port ${port}`)
 })
 
-const closeGame = () => {
-  console.log('closing server')
-  io.httpServer.close()
-  http.close()
-}
-
+// const closeGame = () => {
+//   console.log('closing server')
+//   io.httpServer.close()
+//   http.close()
+// }
 // process.on('SIGINT', closeGame).on('SIGTERM', closeGame)

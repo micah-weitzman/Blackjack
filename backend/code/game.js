@@ -49,7 +49,7 @@ class Game {
   }
 
   close_game() {
-    console.log('closing game')
+    console.log('End of round')
     this.users.forEach(user => {
       user.cards = []
     })
@@ -69,7 +69,8 @@ class Game {
     const cards = []
     this.active_users.forEach(_user => {
       cards.push({
-        user: _user.id,
+        user: _user.name,
+        id: _user.id,
         dealer: _user.dealer,
         cards: this.prepare_cards_for_display(_user),
       })
@@ -85,34 +86,51 @@ class Game {
     console.log('notify_next_player')
     this.next_player += 1
     if (this.next_player === this.active_users.length) {
-      this.dealer_act()
-      this.finalize_game()
-      this.close_game()
-      const _self = this
-      setTimeout(() => {
-        _self.start_game()
-      }, 7000)
+      this.dealer_act().then(() => {
+        this.finalize_game()
+        this.close_game()
+        const _self = this
+        setTimeout(() => {
+          _self.start_game()
+        }, 7000)
+      })
     } else {
       // eslint-disable-next-line prefer-destructuring
       const _user = this.active_users[this.next_player]
-      if (_user.socket) {
+      if (_user !== undefined && !_user.dealer) {
         _user.socket.emit('status', { wait: false, msg: 'Your turn! HIT or STAY!' })
       }
     }
   }
 
-  dealer_act() {
+  setDelay() {
+    return new Promise(resolve => setTimeout(resolve, 5000))
+  }
+
+  async dealer_act() {
+    this.active_users.forEach(usr => {
+      if (!usr.dealer) {
+        usr.socket.emit('status', { wait: true, msg: 'Wait for dealer' })
+      }
+    })
     console.log('Time for dealer to act')
     let total = 0
-    // eslint-disable-next-line prefer-destructuring
-    const [dealer, ...rest] = this.active_users
-    while (total < 17) {
-      this.deal_card(dealer)
-      total = this.highest_sum_from_cards(dealer)
-      this.update_user_view()
-    }
+    const { active_users } = this
+    const [dealer, ...rest] = active_users
+    // while (total < 17) {
+    //   this.deal_card(dealer)
+    //   this.update_user_view()
+    //   total = this.highest_sum_from_cards(dealer)
+    // }
+    this.deal_card(dealer)
+    this.update_user_view()
+    total = this.highest_sum_from_cards(dealer)
     dealer.total = total
-    this.io.emit('score', { user: dealer.id, score: dealer.total })
+    if (total < 17) {
+      await this.setDelay()
+      await this.dealer_act()
+    }
+    // this.io.emit('score', { user: dealer.id, score: dealer.total })
   }
 
   finalize_game() {
@@ -122,7 +140,7 @@ class Game {
       // eslint-disable-next-line prefer-destructuring
       const user = this.active_users[i]
       user.total = this.highest_sum_from_cards(user)
-      this.io.emit('score', { user: user.id, score: user.total })
+      this.io.emit('score', { user: user.name, score: user.total })
       if (user.total > 21) {
         user.socket.emit('status', { wait: true, msg: 'You LOST! Wait for next round..' })
       } else if (this.active_users[0].total > 21) {
@@ -143,7 +161,6 @@ class Game {
     const values = []
     values[0] = []
     values[1] = []
-    console.log(user.cards)
     user.cards.forEach(card => {
       const firstChar = parseInt(card.charAt(0), 10)
       if (card.charAt(0) === 'A') {
@@ -166,14 +183,14 @@ class Game {
   deal_card(user) {
     const card = this.deck.popCard()
     user.cards.push(card)
-    if (!user.dealer) {
-      user.socket.emit('card', { card })
-    }
-    this.io.emit('user_cards', {
-      user: user.id,
-      dealer: user.dealer,
-      cards: this.prepare_cards_for_display(user),
-    })
+    // if (!user.dealer) {
+    //   user.socket.emit('card', { card })
+    // }
+    // this.io.emit('user_cards', {
+    //   user: user.id,
+    //   dealer: user.dealer,
+    //   cards: this.prepare_cards_for_display(user),
+    // })
   }
 
   prepare_cards_for_display(user) {

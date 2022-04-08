@@ -1,144 +1,179 @@
-/* eslint-disable react/jsx-one-expression-per-line */
-import React, { useState, useEffect, useContext } from 'react'
+import React, {
+  useState,
+  useContext,
+  useEffect,
+} from 'react'
 import {
-  Input,
   Button,
-  Checkbox,
-  Row,
   Col,
+  Row,
 } from 'antd'
+import axios from 'axios'
 
 import { SocketContext } from '../context/socket'
+
+import Player from '../components/Player'
 import Hand from '../components/Hand'
 import calcHandValue from '../misc/calcHandValue'
 
-const shuffle = arr => (
-  arr.map(value => ({ value, sort: Math.random() }))
-    .sort((a, b) => a.sort - b.sort)
-    .map(({ value }) => value)
-)
-
-const allCards = ['AC', 'AS', 'AD', 'AH', '2C', '2S', '2D', '2H', '3C', '3S', '3D', '3H', '4C', '4S', '4D', '4H', '5C', '5S', '5D', '5H', '6C', '6S', '6D', '6H', '7C', '7S', '7D', '7H', '8C', '8S', '8D', '8H', '9C', '9S', '9D', '9H', '10C', '10S', '10D', '10H', 'JC', 'JS', 'JD', 'JH', 'QC', 'QS', 'QD', 'QH', 'KC', 'KS', 'KD', 'KH']
-
 const Game = () => {
   const [name, setName] = useState('')
-
+  const [ID, setID] = useState('')
   const socket = useContext(SocketContext)
-  const [cards, setCards] = useState(shuffle(allCards))
 
-  const [playerHand, setPlayerHand] = useState([])
-  const [dealerHand, setDealerHand] = useState([])
+  const [waiting, setWait] = useState(true)
+  const [message, setMsg] = useState('')
+  const [newGame, setNewGame] = useState(false)
 
+  const [table, setTable] = useState([])
+
+  const [started, setStarted] = useState(false)
+
+  const [cards, setCards] = useState([])
+  const [value, setValue] = useState(0)
+
+  const [dealerCards, setDealerCards] = useState([])
+  const [dealerValue, setDealerValue] = useState(true)
   const [dealer, setDealer] = useState(true)
-  const [visible, setVisible] = useState(true)
 
-  const [dealerValue, setDealerValue] = useState(0)
-  const [playerValue, setPlayerValue] = useState(0)
-
-  const [userDone, setUserDone] = useState(false)
-  const [endGame, setEndGame] = useState(false)
-  const [endGameText, setEndGameText] = useState('')
-
-  const [numPlayers, setNumPlayers] = useState(0)
-  const [otherPlayers, setOtherPlayers] = useState([])
-
-  const popCard = num => {
-    const arr = cards.slice(0, num)
-    setCards(c => c.filter((elem, index) => index > num))
-    return arr
+  const reset = () => {
+    setDealer(true)
+    setTable([])
+    setWait([])
+    setCards(() => [])
   }
 
-  const hitPlayer = () => {
-    const newCard = popCard(1)
-    setPlayerHand(hand => [...hand, newCard])
-  }
-
-  const hitDealer = () => {
-    const newCard = popCard(1)
-    setDealerHand(hand => [...hand, newCard])
-  }
+  useEffect(async () => {
+    const res = await axios.get('/isAuth')
+    const { data } = res
+    const { firstName, authID } = data
+    setID(authID)
+    setName(firstName)
+  }, [])
 
   useEffect(() => {
-    setPlayerValue(() => calcHandValue(playerHand))
-    socket.emit('updated hand', name, playerHand)
-  }, [playerHand])
+    socket.on('status', ({ wait, msg, new_game }) => {
+      console.log('status')
+      console.log({ wait, msg, new_game })
+      if (new_game) {
+        setNewGame(new_game)
+      }
+      setWait(wait)
+      setMsg(msg)
+    })
 
-  useEffect(() => {
-    if (playerValue >= 21) {
-      setUserDone(true)
-    }
-  }, [playerValue])
+    socket.on('table_cards', ({ table: t }) => {
+      console.log('table_cards')
+      console.log(t)
+      setTable(t)
+    })
 
-  useEffect(() => {
-    setDealerValue(() => calcHandValue(dealerHand))
-  }, [dealerHand])
+    socket.on('reset', () => {
+      console.log('reset')
+      reset()
+    })
 
-  useEffect(() => {
-    socket.on('number players', count => setNumPlayers(count))
-    socket.on('other players', data => setOtherPlayers(data))
-    socket.on('new hands', data => {
-      console.log(data)
-      setOtherPlayers(data)
+    socket.on('round-done', () => {
+      setDealer(false)
     })
   }, [socket])
 
-  // prompt user for name
   useEffect(() => {
-    const tmp = window.prompt('name')
-    setName(tmp)
-    socket.emit('login', tmp)
-  }, [])
+    const newVal = calcHandValue(cards)
+    setValue(newVal)
+    if (newVal >= 21) {
+      socket.emit('stand')
+    }
+  }, [cards])
 
-  // run when user is done to find dealer hand
+  useEffect(() => {
+    if (dealer) {
+      setDealerValue(calcHandValue(dealerCards.slice(1)))
+    } else {
+      setDealerValue(calcHandValue(dealerCards))
+    }
+  }, [dealerCards, dealer])
 
-  const allHands = Object.keys(otherPlayers).map(k => (
-    <Col span={24 / numPlayers}>
-      <h1>{k}</h1>
-      <h3>
-        {`Value: ${calcHandValue(otherPlayers[k])}`}
-      </h3>
-      <Hand cardList={otherPlayers[k]} visible={visible} />
-    </Col>
-  ))
+  useEffect(() => {
+    table.forEach(({
+      id: playerID,
+      dealer: isDealer,
+      cards: playerCards,
+    }) => {
+      if (isDealer) {
+        setDealerCards(playerCards)
+      } else if (ID === playerID) {
+        setCards(playerCards)
+      }
+    })
+  }, [table])
 
   return (
-    <div style={{ padding: 30 }}>
-      {endGame ? <h1>{ endGameText } </h1> : null }
-      <h1>Dealer</h1>
-      <h3>
-        {`Value: ${dealerValue}`}
-      </h3>
-      <Hand cardList={dealerHand} dealer={!userDone} visible={visible} />
-      <Row>
-        <Col span={24 / numPlayers}>
-          <h1>Yourhand</h1>
-          <h3>
-            {`Value: ${playerValue}`}
-          </h3>
-          <Hand cardList={playerHand} visible={visible} />
-          <br />
-          <br />
-          {userDone ? null
-            : (
-              <>
-                <Button
-                  onClick={() => {
-                    hitPlayer()
-                  }}
-                >
-                  Hit
-                </Button>
-                <Button onClick={() => setUserDone(true)}>
-                  Stand
-                </Button>
-              </>
-            )}
-        </Col>
-        {otherPlayerHands}
-      </Row>
-      { endGame
-        ? <Button type="danger" onClick={() => reset()}>Reset?</Button>
-        : null}
+    <div style={{ paddingLeft: 50 }}>
+      <br />
+      <p>{message}</p>
+      <br />
+      <br />
+      {started
+        ? (
+          <>
+            <h2>Dealer Cards</h2>
+            <Hand cardList={dealerCards} dealer={dealer} />
+            <h3>{`Value: ${dealerValue}`}</h3>
+            <br />
+            <br />
+            <br />
+            <Row>
+              <Col span={24 / (table.length - 1)}>
+                {value !== 0
+                  ? (
+                    <>
+                      <h2>Your Hand</h2>
+                      <Hand cardList={cards} />
+                      <h3>{`Value: ${value}`}</h3>
+                      <br />
+                      { waiting ? null : (
+                        <>
+                          <Button type="button" onClick={() => socket.emit('hit')}>
+                            HIT
+                          </Button>
+                          <Button type="button" onClick={() => socket.emit('stand')}>
+                            STAND
+                          </Button>
+                        </>
+                      )}
+                    </>
+                  )
+                  : <h2>Waiting for next round</h2> }
+              </Col>
+              <br />
+              <br />
+              <Col span={24 / (table.length - 1)}>
+                {
+                  table.map(({ user, cards: c, id }) => {
+                    if (id !== ID && user !== 'DEALER') {
+                      return (
+                        <Player user={user} cards={c} />
+                      )
+                    }
+                    return null
+                  })
+                }
+              </Col>
+            </Row>
+          </>
+        )
+        : (
+          <Button
+            type="button"
+            onClick={() => {
+              socket.emit('startGame', { firstName: name, id: ID })
+              setStarted(true)
+            }}
+          >
+            Start Game
+          </Button>
+        )}
     </div>
   )
 }
