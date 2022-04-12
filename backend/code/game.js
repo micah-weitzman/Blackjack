@@ -1,3 +1,4 @@
+/* eslint-disable no-console */
 /* eslint-disable class-methods-use-this */
 /* eslint-disable no-param-reassign */
 /* eslint-disable func-names */
@@ -13,8 +14,9 @@ class Game {
     this.freshstart = true// fresh start (no previous running table)
     this.running = false
     this.next_player = 0// the next player to act (hit/stick). 0 is the dealer (1st player in list)
+    this.next_bet = 0
     this.max_active_users = 4
-    const user = new User('DEALER')
+    const user = new User('DEALER', null)
     user.dealer = true
     user.active = true
     this.users.push(user)
@@ -22,14 +24,32 @@ class Game {
 
   start_game() {
     console.log('Game started')
-    const _this = this
+
     this.running = true
     this.deck = new Deck()
     this.deck.shuffle()
+    this.next_bet = 0
     this.next_player = 0// index in user list (index 0 is the dealer)
     this.active_users = []
     // this.active_users.push(this.users[0])
     this.update_user_status()
+    this.active_users.forEach(user => {
+      user.cards = []
+      if (!user.dealer) {
+        user.socket.emit('reset')
+        // deal two cards per user
+        user.socket.emit('status', {
+          wait: true,
+          msg: 'New Game started! Wait for your turn!',
+        })
+      }
+    })
+
+    this.notify_next_bet()
+  }
+
+  start_round() {
+    const _this = this
     this.active_users.forEach(user => {
       user.cards = []
       if (!user.dealer) {
@@ -44,6 +64,8 @@ class Game {
       _this.deal_card(user)
       _this.deal_card(user)
     })
+    console.log('Active users')
+    console.log(this.active_users.length)
     this.update_user_view()
     this.notify_next_player()
   }
@@ -59,9 +81,13 @@ class Game {
 
   update_user_status() {
     const max_index = (this.users.length <= this.max_active_users ? this.users.length : this.max_active_users)
-    this.users.forEach(user => {
-      user.active = true
-      this.active_users.push(user)
+    this.users.forEach((user, index) => {
+      if (index <= max_index) {
+        user.active = true
+        this.active_users.push(user)
+      } else {
+        user.active = false
+      }
     })
   }
 
@@ -82,18 +108,38 @@ class Game {
     }
   }
 
+  notify_next_bet() {
+    console.log('notify_next_bet')
+    this.next_bet += 1
+    if (this.next_bet >= this.active_users.length || this.active_users[this.next_bet].dealer) {
+      this.start_round()
+    } else {
+      // eslint-disable-next-line prefer-destructuring
+      const _user = this.active_users[this.next_bet]
+      if (_user !== undefined && !_user.dealer) {
+        _user.socket.emit('status', { wait: false, msg: 'Your turn to place your bet!' })
+        _user.socket.emit('status_bet')
+      }
+    }
+  }
+
   notify_next_player() {
-    console.log('notify_next_player')
+    // console.log('[')
+    // this.active_users.forEach(usr => {
+    //   console.log(usr.name)
+    // })
+    // console.log('[')
     this.next_player += 1
-    if (this.next_player === this.active_users.length) {
-      this.dealer_act().then(() => {
-        this.finalize_game()
-        this.close_game()
-        const _self = this
-        setTimeout(() => {
-          _self.start_game()
-        }, 7000)
-      })
+    console.log('notify_next_player')
+    console.log(this.active_users[this.next_player])
+    if (this.next_player >= this.active_users.length || this.active_users[this.next_player].dealer) {
+      this.dealer_act()
+      this.finalize_game()
+      this.close_game()
+      const _self = this
+      setTimeout(() => {
+        _self.start_game()
+      }, 7000)
     } else {
       // eslint-disable-next-line prefer-destructuring
       const _user = this.active_users[this.next_player]
@@ -103,34 +149,18 @@ class Game {
     }
   }
 
-  setDelay() {
-    return new Promise(resolve => setTimeout(resolve, 5000))
-  }
-
-  async dealer_act() {
-    this.active_users.forEach(usr => {
-      if (!usr.dealer) {
-        usr.socket.emit('status', { wait: true, msg: 'Wait for dealer' })
-      }
-    })
+  dealer_act() {
     console.log('Time for dealer to act')
     let total = 0
     const { active_users } = this
+    console.log(active_users)
     const [dealer, ...rest] = active_users
-    // while (total < 17) {
-    //   this.deal_card(dealer)
-    //   this.update_user_view()
-    //   total = this.highest_sum_from_cards(dealer)
-    // }
-    this.deal_card(dealer)
-    this.update_user_view()
-    total = this.highest_sum_from_cards(dealer)
-    dealer.total = total
-    if (total < 17) {
-      await this.setDelay()
-      await this.dealer_act()
+    while (total < 17) {
+      this.deal_card(dealer)
+      this.update_user_view()
+      total = this.highest_sum_from_cards(dealer)
     }
-    // this.io.emit('score', { user: dealer.id, score: dealer.total })
+    dealer.total = total
   }
 
   finalize_game() {
@@ -140,19 +170,23 @@ class Game {
       // eslint-disable-next-line prefer-destructuring
       const user = this.active_users[i]
       user.total = this.highest_sum_from_cards(user)
-      this.io.emit('score', { user: user.name, score: user.total })
+      // this.io.emit('score', { user: user.name, score: user.total })
       if (user.total > 21) {
         user.socket.emit('status', { wait: true, msg: 'You LOST! Wait for next round..' })
+        user.socket.emit('round-done', { won: false, tied: false })
       } else if (this.active_users[0].total > 21) {
         user.socket.emit('status', { wait: true, msg: 'You WON! Wait for next round..' })
+        user.socket.emit('round-done', { won: true, tied: false })
       } else if (user.total === this.active_users[0].total) {
         user.socket.emit('status', { wait: true, msg: 'TIE! Wait for next round..' })
+        user.socket.emit('round-done', { won: false, tied: true })
       } else if (user.total > this.active_users[0].total) {
         user.socket.emit('status', { wait: true, msg: 'You WON! Wait for next round..' })
+        user.socket.emit('round-done', { won: true, tied: false })
       } else {
         user.socket.emit('status', { wait: true, msg: 'You LOST! Wait for next round..' })
+        user.socket.emit('round-done', { won: false, tied: false })
       }
-      user.socket.emit('round-done')
     }
   }
 
@@ -233,8 +267,9 @@ class Game {
     if (idx > -1) {
       this.users.splice(idx, 1)
       if (this.users.length === 1) {
-        // everyone left..
+        // everyone left...
         this.freshstart = true
+        console.log('Everyone left game. Closing game')
         this.close_game()
       }
     }

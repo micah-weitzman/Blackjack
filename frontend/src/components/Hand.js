@@ -1,7 +1,7 @@
 /* eslint-disable react/no-array-index-key */
-import React, { useState } from 'react'
+import React from 'react'
 
-import Card from './Card'
+import PlayingCard from './PlayingCard'
 
 const Hand = ({
   cardList,
@@ -14,7 +14,7 @@ const Hand = ({
     return (
       <div className="hand hhand-compact">
         { cardList.map((cardName, index) => (
-          <Card name="BLUE_BACK" key={index} />
+          <PlayingCard name="BLUE_BACK" key={index} />
         ))}
       </div>
     )
@@ -25,9 +25,9 @@ const Hand = ({
       <div className="hand hhand-compact">
         { cardList.map((cardName, index) => {
           if (index === 0) {
-            return (<Card name="BLUE_BACK" key={index} />)
+            return (<PlayingCard name="BLUE_BACK" key={index} />)
           }
-          return (<Card name={cardName} key={index} />)
+          return (<PlayingCard name={cardName} key={index} />)
         })}
       </div>
     )
@@ -36,7 +36,7 @@ const Hand = ({
   return (
     <div className="hand hhand-compact">
       { cardList.map((cardName, index) => (
-        <Card name={cardName} key={index} />
+        <PlayingCard name={cardName} key={index} />
       ))}
     </div>
   )

@@ -7,7 +7,7 @@ import {
   Route,
 } from 'react-router-dom'
 import axios from 'axios'
-import { Spinner } from 'react-bootstrap'
+import { Layout } from 'antd'
 
 import { SocketContext, socket } from './context/socket'
 
@@ -16,6 +16,8 @@ import Home from './pages/Home'
 import Game from './pages/Game'
 
 import Navbar from './components/Navbar'
+
+const { Content } = Layout
 
 const App = () => {
   const [busy, setBusy] = useState(true)
@@ -41,27 +43,29 @@ const App = () => {
   }, [])
 
   return (
-    <>
+    <Layout>
       {busy
         ? null
         : isAuth ? (
           <>
             <Navbar name={name} />
-            <BrowserRouter>
-              <Routes>
-                <Route path="/" element={<Home />} />
-                <Route path="/home" element={<Home />} />
-                <Route
-                  path="/game"
-                  element={(
-                    <SocketContext.Provider value={socket}>
-                      <Game />
-                    </SocketContext.Provider>
-                    )}
-                />
-                <Route path="/login" element={<Login />} />
-              </Routes>
-            </BrowserRouter>
+            <Content style={{ padding: '24px', background: '#fff' }}>
+              <BrowserRouter>
+                <Routes>
+                  <Route path="/" element={<Home />} />
+                  <Route path="/home" element={<Home />} />
+                  <Route
+                    path="/game"
+                    element={(
+                      <SocketContext.Provider value={socket}>
+                        <Game />
+                      </SocketContext.Provider>
+                      )}
+                  />
+                  <Route path="/login" element={<Login />} />
+                </Routes>
+              </BrowserRouter>
+            </Content>
           </>
         ) : (
           <BrowserRouter>
@@ -70,7 +74,7 @@ const App = () => {
             </Routes>
           </BrowserRouter>
         )}
-    </>
+    </Layout>
   )
 }
 

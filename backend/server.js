@@ -16,6 +16,7 @@ const Game = require('./code/game')
 const User = require('./code/user')
 
 const authRouter = require('./routes/auth')
+const userRoutes = require('./routes/user')
 
 const app = express()
 const game = new Game()
@@ -42,6 +43,7 @@ app.use(session({
 app.use(passport.authenticate('session'))
 
 app.use('/', authRouter)
+app.use('/user', userRoutes)
 
 // app.use((err, req, res, next) => {
 //   if (err) {
@@ -51,9 +53,9 @@ app.use('/', authRouter)
 //   return next()
 // })
 
-io.on('connection', socket => {
+io.on('connection', async socket => {
   const user = new User(new Date().toISOString(), socket)
-  socket.on('startGame', ({ firstName, id }) => {
+  socket.on('startGame', async ({ firstName, id }) => {
     user.name = firstName
     user.id = id
     game.users.push(user)
@@ -65,12 +67,12 @@ io.on('connection', socket => {
   })
 
   if (game.users.length > game.max_active_users) {
-    socket.emit('status', {
+    await socket.emit('status', {
       wait: true,
       msg: 'Max players playing',
     })
   } else if (game.running) {
-    socket.emit('status', {
+    await socket.emit('status', {
       wait: true,
       msg: 'Waiting for next round',
     })
@@ -81,9 +83,18 @@ io.on('connection', socket => {
     game.remove_user(socket)
   })
 
-  socket.on('hit', () => {
+  socket.on('bet', async ({ bet }) => {
+    console.log(`User bet: ${bet}`)
+    await socket.emit('status', {
+      wait: true,
+      msg: 'Waiting for other players to place bets',
+    })
+    game.notify_next_bet()
+  })
+
+  socket.on('hit', async () => {
     console.log('user hit')
-    user.socket.emit('status', {
+    await user.socket.emit('status', {
       wait: false,
       msg: 'Your turn',
     })
@@ -91,13 +102,13 @@ io.on('connection', socket => {
     game.update_user_view()
   })
 
-  socket.on('stand', () => {
+  socket.on('stand', async () => {
     console.log('user stand')
-    socket.emit('status', {
+    await socket.emit('status', {
       wait: true,
       msg: 'Waiting for other players',
     })
-    game.notify_next_player()
+    await game.notify_next_player()
   })
 })
 
@@ -110,7 +121,7 @@ app.use((err, req, res, next) => {
 })
 
 app.get('/favicon.ico', (req, res) => {
-  res.status(404).send()
+  res.sendFile(path.join(__dirname, '../frontend/assets/favicon.png'))
 })
 
 app.get('/assets/cards/:name', (req, res) => {

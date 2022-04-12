@@ -1,7 +1,7 @@
 import React from 'react'
 import 'cardsJS/dist/cards.css'
 
-const Card = ({ name }) => {
+const PlayingCard = ({ name }) => {
   const src = `/assets/cards/${name}.svg`
 
   return (
@@ -9,4 +9,4 @@ const Card = ({ name }) => {
   )
 }
 
-export default Card
+export default PlayingCard

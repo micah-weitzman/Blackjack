@@ -4,6 +4,7 @@ const passport = require('passport')
 const GoogleStrategy = require('passport-google-oidc')
 
 const User = require('../models/user')
+const isAuth = require('../middleware/isAuthenticated')
 
 passport.use(new GoogleStrategy({
   clientID: process.env.GOOGLE_CLIENT_ID,
@@ -62,19 +63,15 @@ router.get('/oauth2/redirect/google', passport.authenticate('google', {
   failureRedirect: '/login',
 }))
 
-router.get('/isAuth', (req, res, next) => {
-  if (req.session.passport !== null && req.session.passport !== undefined) {
-    res.json(req.session.passport.user)
-  } else {
-    next(Error('User is not authenticated'))
-  }
+router.get('/isAuth', isAuth, (req, res, next) => {
+  res.json(req.session.passport.user)
 })
 
 /* POST /logout
  *
  * This route logs the user out.
  */
-router.post('/logout', (req, res, next) => {
+router.post('/logout', isAuth, (req, res, next) => {
   req.logout()
   res.redirect('/')
 })
