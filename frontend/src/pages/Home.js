@@ -7,6 +7,7 @@ import {
   Col,
   Button,
 } from 'antd'
+import { Link } from 'react-router-dom'
 
 const Home = () => {
   const [playerData, setPlayerData] = useState({})
@@ -17,21 +18,34 @@ const Home = () => {
   }, [])
 
   return (
-    <Row gutter={16}>
-      <Col span={8}>
-        <Statistic title="Games Played" value={playerData.gamesPlayed} />
-      </Col>
-      <Col span={8}>
-        <Statistic title="Games Won" value={playerData.gamesWon} />
-      </Col>
-      <Col span={8}>
-        <Statistic
-          title="Earnings"
-          value={playerData.earnings}
-          prefix="$"
-        />
-      </Col>
-    </Row>
+    <>
+      <Row gutter={16}>
+        <Col span={8}>
+          <Statistic title="Games Played" value={playerData.gamesPlayed} />
+        </Col>
+        <Col span={8}>
+          <Statistic title="Games Won" value={playerData.gamesWon} />
+        </Col>
+        <Col span={8}>
+          <Statistic
+            title="Earnings"
+            value={playerData.earnings}
+            prefix="$"
+          />
+        </Col>
+      </Row>
+
+      <Link to="/gameOne">
+        Game One
+      </Link>
+      <Link to="/gameTwo">
+        Game Two
+      </Link>
+      <Link to="/gameThree">
+        Game Three
+      </Link>
+
+    </>
   )
 }
 

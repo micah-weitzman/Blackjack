@@ -11,7 +11,9 @@ const Navbar = ({ name }) => (
       <Nbar.Brand href="/">Blackjack</Nbar.Brand>
       <Nav className="me-auto">
         <Nav.Link href="/home">Home</Nav.Link>
-        <Nav.Link href="/game">Game</Nav.Link>
+        <Nav.Link href="/gameOne">Game One</Nav.Link>
+        <Nav.Link href="/gameTwo">Game Two</Nav.Link>
+        <Nav.Link href="/gameThree">Game Three</Nav.Link>
       </Nav>
       <div className="d-flex">
         {`Welcome ${name}`}

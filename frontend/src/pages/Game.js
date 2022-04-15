@@ -16,13 +16,14 @@ import ReactCountdownClock from 'react-countdown-clock'
 
 import { SocketContext } from '../context/socket'
 
+import Chat from '../components/Chat'
 import Player from '../components/Player'
 import Hand from '../components/Hand'
 import calcHandValue from '../misc/calcHandValue'
 
 const TIMEOUT = 10
 
-const Game = () => {
+const Game = ({ gameID }) => {
   const [name, setName] = useState('')
   const [ID, setID] = useState('')
   const socket = useContext(SocketContext)
@@ -49,6 +50,12 @@ const Game = () => {
   const [dealerValue, setDealerValue] = useState(true)
   const [dealer, setDealer] = useState(true)
 
+  const [chats, setChats] = useState([])
+
+  const sendMessage = msg => {
+    
+  }
+
   const reset = () => {
     setDealer(true)
     setTable([])
@@ -67,23 +74,23 @@ const Game = () => {
     resetTimer()
     if (betting) {
       setBet(0)
-      socket.emit('bet', { bet: 0 })
+      socket.emit('bet', { bet: 0, gameID })
       setBetting(false)
     } else {
-      socket.emit('stand')
+      socket.emit('stand', { gameID })
       setWait(true)
     }
   }
 
   const sendStand = async () => {
     resetTimer()
-    await socket.emit('stand')
+    await socket.emit('stand', { gameID })
     setWait(true)
   }
 
   const sendHit = async () => {
     resetTimer()
-    await socket.emit('hit')
+    await socket.emit('hit', { gameID })
     setWait(true)
   }
 
@@ -93,7 +100,7 @@ const Game = () => {
     setWait(true)
     console.log(`Bet placed of ${bet}`)
     await axios.post('/user/makeBet', { bet })
-    await socket.emit('bet', { bet })
+    await socket.emit('bet', { bet, gameID })
   }
 
   useEffect(async () => {
@@ -258,7 +265,7 @@ const Game = () => {
           <Button
             type="button"
             onClick={() => {
-              socket.emit('startGame', { firstName: name, id: ID })
+              socket.emit('startGame', { firstName: name, id: ID, gameID })
               setStarted(true)
             }}
           >
