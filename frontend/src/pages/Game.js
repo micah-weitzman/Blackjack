@@ -41,7 +41,7 @@ const Game = ({ gameID }) => {
   const [started, setStarted] = useState(false)
 
   const [cards, setCards] = useState([])
-  const [value, setValue] = useState(0)
+  // const [value, setValue] = useState(0)
 
   const [bet, setBet] = useState(5)
   const [earnings, setEarnings] = useState(0)
@@ -50,11 +50,7 @@ const Game = ({ gameID }) => {
   const [dealerValue, setDealerValue] = useState(true)
   const [dealer, setDealer] = useState(true)
 
-  const [chats, setChats] = useState([])
-
-  const sendMessage = msg => {
-    
-  }
+  const [messages, setMessages] = useState([])
 
   const reset = () => {
     setDealer(true)
@@ -101,6 +97,13 @@ const Game = ({ gameID }) => {
     console.log(`Bet placed of ${bet}`)
     await axios.post('/user/makeBet', { bet })
     await socket.emit('bet', { bet, gameID })
+  }
+
+  const sendChat = msg => {
+    const newmsg = msg
+    newmsg.user.avatar = `https://avatars.dicebear.com/api/avataaars/${ID}.svg`
+    setMessages(msgs => [...msgs, msg])
+    socket.emit('sendMessage', { gameID, message: newmsg.text })
   }
 
   useEffect(async () => {
@@ -157,7 +160,31 @@ const Game = ({ gameID }) => {
       }
       setDealer(false)
     })
+
+    socket.on('newMessage', async obj => {
+      const {
+        gameID: newID,
+        name: username,
+        userID,
+        message: text,
+        date: createdAt,
+      } = obj
+      const msgID = messages.length + 1
+      // eslint-disable-next-line eqeqeq
+      if (newID == gameID) {
+        const newMsg = {
+          id: msgID,
+          text,
+          user: { id: userID, avatar: `https://avatars.dicebear.com/api/avataaars/${userID}.svg` },
+        }
+        setMessages(msgs => [...msgs, newMsg])
+      }
+    })
   }, [socket])
+
+  useEffect(() => {
+    console.log(messages)
+  }, [messages])
 
   // useEffect(async () => {
   //   const newVal = calcHandValue(cards)
@@ -206,7 +233,7 @@ const Game = ({ gameID }) => {
                 <h3>{`Value: ${dealerValue}`}</h3>
               </Col>
               <Col span={8}>
-                <Player user="Your Hand" cards={cards} />
+                <Player user="Your Hand" id={ID} cards={cards} />
                 <br />
                 <Button type="button" disabled={waiting || betting} onClick={sendHit}>
                   HIT
@@ -251,7 +278,7 @@ const Game = ({ gameID }) => {
                   table.map(({ user, cards: c, id }) => {
                     if (id !== ID && user !== 'DEALER') {
                       return (
-                        <Player user={user} cards={c} />
+                        <Player user={user} cards={c} id={id} />
                       )
                     }
                     return null
@@ -272,6 +299,7 @@ const Game = ({ gameID }) => {
             Start Game
           </Button>
         )}
+      <Chat messages={messages} sendChat={sendChat} gameID={gameID} />
     </div>
   )
 }

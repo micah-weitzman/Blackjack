@@ -43,7 +43,7 @@ const App = () => {
   }, [])
 
   return (
-    <Layout>
+    <Layout style={{ height: '100vh' }}>
       {busy
         ? null
         : isAuth ? (

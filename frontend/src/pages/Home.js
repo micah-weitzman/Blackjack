@@ -34,17 +34,23 @@ const Home = () => {
           />
         </Col>
       </Row>
-
-      <Link to="/gameOne">
-        Game One
-      </Link>
-      <Link to="/gameTwo">
-        Game Two
-      </Link>
-      <Link to="/gameThree">
-        Game Three
-      </Link>
-
+      <Row style={{ marginTop: 15 }}>
+        <Link to="/gameOne">
+          <Button style={{ marginRight: 20 }}>
+            Game One
+          </Button>
+        </Link>
+        <Link to="/gameTwo">
+          <Button style={{ marginRight: 20 }}>
+            Game Two
+          </Button>
+        </Link>
+        <Link to="/gameThree">
+          <Button style={{ marginRight: 20 }}>
+            Game Three
+          </Button>
+        </Link>
+      </Row>
     </>
   )
 }

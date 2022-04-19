@@ -125,10 +125,11 @@ io.on('connection', async socket => {
     // eslint-disable-next-line prefer-destructuring
     const Room = chatrooms[gameID]
     const time = Date.now()
-    await Room.create({ name: user.name, date: time, message })
-    io.emit('newMessage', {
+    // await Room.create({ name: user.name, date: time, message })
+    socket.broadcast.emit('newMessage', {
       gameID,
       name: user.name,
+      userID: user.id,
       message,
       date: time,
     })

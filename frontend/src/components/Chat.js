@@ -1,35 +1,21 @@
 import React, { useState } from 'react'
+import SimpleChat from 'react-simple-chat'
 
-const styles = {
-  main: {
+import 'react-simple-chat/src/components/index.css'
 
-  },
-  message: {
-    margin: 0,
-    padding: 0,
-  },
-}
-
-const Chat = ({ chats, sendMessage }) => {
-  const [msg, setMsg] = useState('')
-
-  const sendMsg = () => {
-    sendMessage(msg)
-    setMsg('')
-  }
-  return (
-    <div style={styles.main}>
-      {chats.map(({ message, name, date }) => (
-        <li style={styles.message}>
-          {`${name}:${message}`}
-        </li>
-      ))}
-      <form id="form" action="">
-        <input id="input" value={msg} onChange={e => setMsg(e.target)} />
-        <button type="button" onClick={() => sendMsg()}>Send</button>
-      </form>
-    </div>
-  )
-}
+const Chat = ({ messages, sendChat, gameID }) => (
+  <div
+    style={{
+      posistion: 'fixed',
+    }}
+  >
+    <SimpleChat
+      title={`Room #${gameID + 1}`}
+      user={{ id: 1 }}
+      messages={messages}
+      onSend={sendChat}
+    />
+  </div>
+)
 
 export default Chat
