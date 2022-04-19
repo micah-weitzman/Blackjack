@@ -71,8 +71,10 @@ router.get('/isAuth', isAuth, (req, res, next) => {
  *
  * This route logs the user out.
  */
-router.post('/logout', isAuth, (req, res, next) => {
+router.get('/logout', isAuth, (req, res, next) => {
   req.logout()
+  req.session.destroy()
+  res.clearCookie('connect.sid')
   res.redirect('/')
 })
 

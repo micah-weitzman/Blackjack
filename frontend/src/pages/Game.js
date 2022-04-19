@@ -16,13 +16,14 @@ import ReactCountdownClock from 'react-countdown-clock'
 
 import { SocketContext } from '../context/socket'
 
+import Chat from '../components/Chat'
 import Player from '../components/Player'
 import Hand from '../components/Hand'
 import calcHandValue from '../misc/calcHandValue'
 
 const TIMEOUT = 10
 
-const Game = () => {
+const Game = ({ gameID }) => {
   const [name, setName] = useState('')
   const [ID, setID] = useState('')
   const socket = useContext(SocketContext)
@@ -40,7 +41,7 @@ const Game = () => {
   const [started, setStarted] = useState(false)
 
   const [cards, setCards] = useState([])
-  const [value, setValue] = useState(0)
+  // const [value, setValue] = useState(0)
 
   const [bet, setBet] = useState(5)
   const [earnings, setEarnings] = useState(0)
@@ -48,6 +49,8 @@ const Game = () => {
   const [dealerCards, setDealerCards] = useState([])
   const [dealerValue, setDealerValue] = useState(true)
   const [dealer, setDealer] = useState(true)
+
+  const [messages, setMessages] = useState([])
 
   const reset = () => {
     setDealer(true)
@@ -67,23 +70,23 @@ const Game = () => {
     resetTimer()
     if (betting) {
       setBet(0)
-      socket.emit('bet', { bet: 0 })
+      socket.emit('bet', { bet: 0, gameID })
       setBetting(false)
     } else {
-      socket.emit('stand')
+      socket.emit('stand', { gameID })
       setWait(true)
     }
   }
 
   const sendStand = async () => {
     resetTimer()
-    await socket.emit('stand')
+    await socket.emit('stand', { gameID })
     setWait(true)
   }
 
   const sendHit = async () => {
     resetTimer()
-    await socket.emit('hit')
+    await socket.emit('hit', { gameID })
     setWait(true)
   }
 
@@ -93,7 +96,14 @@ const Game = () => {
     setWait(true)
     console.log(`Bet placed of ${bet}`)
     await axios.post('/user/makeBet', { bet })
-    await socket.emit('bet', { bet })
+    await socket.emit('bet', { bet, gameID })
+  }
+
+  const sendChat = msg => {
+    const newmsg = msg
+    newmsg.user.avatar = `https://avatars.dicebear.com/api/avataaars/${ID}.svg`
+    setMessages(msgs => [...msgs, msg])
+    socket.emit('sendMessage', { gameID, message: newmsg.text })
   }
 
   useEffect(async () => {
@@ -150,7 +160,31 @@ const Game = () => {
       }
       setDealer(false)
     })
+
+    socket.on('newMessage', async obj => {
+      const {
+        gameID: newID,
+        name: username,
+        userID,
+        message: text,
+        date: createdAt,
+      } = obj
+      const msgID = messages.length + 1
+      // eslint-disable-next-line eqeqeq
+      if (newID == gameID) {
+        const newMsg = {
+          id: msgID,
+          text,
+          user: { id: userID, avatar: `https://avatars.dicebear.com/api/avataaars/${userID}.svg` },
+        }
+        setMessages(msgs => [...msgs, newMsg])
+      }
+    })
   }, [socket])
+
+  useEffect(() => {
+    console.log(messages)
+  }, [messages])
 
   // useEffect(async () => {
   //   const newVal = calcHandValue(cards)
@@ -199,7 +233,7 @@ const Game = () => {
                 <h3>{`Value: ${dealerValue}`}</h3>
               </Col>
               <Col span={8}>
-                <Player user="Your Hand" cards={cards} />
+                <Player user="Your Hand" id={ID} cards={cards} />
                 <br />
                 <Button type="button" disabled={waiting || betting} onClick={sendHit}>
                   HIT
@@ -244,7 +278,7 @@ const Game = () => {
                   table.map(({ user, cards: c, id }) => {
                     if (id !== ID && user !== 'DEALER') {
                       return (
-                        <Player user={user} cards={c} />
+                        <Player user={user} cards={c} id={id} />
                       )
                     }
                     return null
@@ -258,13 +292,14 @@ const Game = () => {
           <Button
             type="button"
             onClick={() => {
-              socket.emit('startGame', { firstName: name, id: ID })
+              socket.emit('startGame', { firstName: name, id: ID, gameID })
               setStarted(true)
             }}
           >
             Start Game
           </Button>
         )}
+      <Chat messages={messages} sendChat={sendChat} gameID={gameID} />
     </div>
   )
 }

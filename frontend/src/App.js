@@ -43,7 +43,7 @@ const App = () => {
   }, [])
 
   return (
-    <Layout>
+    <Layout style={{ height: '100vh' }}>
       {busy
         ? null
         : isAuth ? (
@@ -55,10 +55,26 @@ const App = () => {
                   <Route path="/" element={<Home />} />
                   <Route path="/home" element={<Home />} />
                   <Route
-                    path="/game"
+                    path="/gameOne"
                     element={(
                       <SocketContext.Provider value={socket}>
-                        <Game />
+                        <Game gameID={0} />
+                      </SocketContext.Provider>
+                      )}
+                  />
+                  <Route
+                    path="/gameTwo"
+                    element={(
+                      <SocketContext.Provider value={socket}>
+                        <Game gameID={1} />
+                      </SocketContext.Provider>
+                      )}
+                  />
+                  <Route
+                    path="/gameThree"
+                    element={(
+                      <SocketContext.Provider value={socket}>
+                        <Game gameID={2} />
                       </SocketContext.Provider>
                       )}
                   />

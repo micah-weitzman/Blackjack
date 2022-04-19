@@ -18,9 +18,19 @@ const User = require('./code/user')
 const authRouter = require('./routes/auth')
 const userRoutes = require('./routes/user')
 
+const { Chatroom1, Chatroom2, Chatroom3 } = require('./models/chatrooms')
+
+const chatrooms = [Chatroom1, Chatroom2, Chatroom3]
+
 const app = express()
-const game = new Game()
-game.io = io
+const game0 = new Game()
+const game1 = new Game()
+const game2 = new Game()
+game0.io = io
+game1.io = io
+game2.io = io
+
+const games = [game0, game1, game2]
 
 const port = 3000
 const socketPort = 3001
@@ -55,60 +65,74 @@ app.use('/user', userRoutes)
 
 io.on('connection', async socket => {
   const user = new User(new Date().toISOString(), socket)
-  socket.on('startGame', async ({ firstName, id }) => {
+  socket.on('startGame', async ({ firstName, id, gameID }) => {
     user.name = firstName
     user.id = id
-    game.users.push(user)
-    if (!game.running) {
-      game.freshstart = false
-      // game.update_user_view(user)
-      game.start_game()
+    games[gameID].users.push(user)
+    if (!games[gameID].running) {
+      games[gameID].freshstart = false
+      // games[gameID].update_user_view(user)
+      games[gameID].start_game()
+    }
+
+    if (games[gameID].users.length > games[gameID].max_active_users) {
+      await socket.emit('status', {
+        wait: true,
+        msg: 'Max players playing',
+      })
+    } else if (games[gameID].running) {
+      await socket.emit('status', {
+        wait: true,
+        msg: 'Waiting for next round',
+      })
     }
   })
 
-  if (game.users.length > game.max_active_users) {
-    await socket.emit('status', {
-      wait: true,
-      msg: 'Max players playing',
-    })
-  } else if (game.running) {
-    await socket.emit('status', {
-      wait: true,
-      msg: 'Waiting for next round',
-    })
-  }
-
   socket.on('disconnect', () => {
     console.log('User disconnected')
-    game.remove_user(socket)
+    games.forEach(g => g.remove_user(socket))
   })
 
-  socket.on('bet', async ({ bet }) => {
+  socket.on('bet', async ({ bet, gameID }) => {
     console.log(`User bet: ${bet}`)
     await socket.emit('status', {
       wait: true,
       msg: 'Waiting for other players to place bets',
     })
-    game.notify_next_bet()
+    games[gameID].notify_next_bet()
   })
 
-  socket.on('hit', async () => {
+  socket.on('hit', async ({ gameID }) => {
     console.log('user hit')
     await user.socket.emit('status', {
       wait: false,
       msg: 'Your turn',
     })
-    game.deal_card(user)
-    game.update_user_view()
+    games[gameID].deal_card(user)
+    games[gameID].update_user_view()
   })
 
-  socket.on('stand', async () => {
+  socket.on('stand', async ({ gameID }) => {
     console.log('user stand')
     await socket.emit('status', {
       wait: true,
       msg: 'Waiting for other players',
     })
-    await game.notify_next_player()
+    await games[gameID].notify_next_player()
+  })
+
+  socket.on('sendMessage', async ({ message, gameID }) => {
+    // eslint-disable-next-line prefer-destructuring
+    const Room = chatrooms[gameID]
+    const time = Date.now()
+    // await Room.create({ name: user.name, date: time, message })
+    socket.broadcast.emit('newMessage', {
+      gameID,
+      name: user.name,
+      userID: user.id,
+      message,
+      date: time,
+    })
   })
 })
 
