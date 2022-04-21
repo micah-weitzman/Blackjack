@@ -6,7 +6,7 @@
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": "node backend/server.js",
     "monitor": "nodemon backend/server.js",
-    "build": "parcel frontend/src/index.html && node backend/server.js"
+    "build": "parcel build frontend/src/index.html"
   },
   "repository": {
     "type": "git",
