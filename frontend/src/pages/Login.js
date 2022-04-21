@@ -26,8 +26,8 @@ const Login = () => (
           paddingBottom: 50,
         }}
       >
-        <Title level={1}>Sign in</Title>
-        <br />
+        <Title level={1}>Welcome to Blackjack!</Title>
+        <Title level={2}>Sign in</Title>
         <Button>
           <a href="http://localhost:3000/login/federated/google">
             <img

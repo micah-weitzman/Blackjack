@@ -4,7 +4,7 @@
   "description": "",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "server": "node backend/server.js",
+    "start": "node backend/server.js",
     "monitor": "nodemon backend/server.js",
     "build": "parcel watch frontend/src/index.html"
   },
