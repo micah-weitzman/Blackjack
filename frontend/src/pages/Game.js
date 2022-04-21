@@ -10,6 +10,7 @@ import {
   Row,
   InputNumber,
   Statistic,
+  Typography,
 } from 'antd'
 import axios from 'axios'
 import ReactCountdownClock from 'react-countdown-clock'
@@ -21,7 +22,7 @@ import Player from '../components/Player'
 import Hand from '../components/Hand'
 import calcHandValue from '../misc/calcHandValue'
 
-const TIMEOUT = 10
+const TIMEOUT = 20
 
 const Game = ({ gameID }) => {
   const [name, setName] = useState('')
@@ -66,7 +67,7 @@ const Game = ({ gameID }) => {
   }
 
   const timeoutCallback = () => {
-    console.log('Timer finished')
+    // console.log('Timer finished')
     resetTimer()
     if (betting) {
       setBet(0)
@@ -94,7 +95,7 @@ const Game = ({ gameID }) => {
     resetTimer()
     setBetting(false)
     setWait(true)
-    console.log(`Bet placed of ${bet}`)
+    // console.log(`Bet placed of ${bet}`)
     await axios.post('/user/makeBet', { bet })
     await socket.emit('bet', { bet, gameID })
   }
@@ -117,13 +118,13 @@ const Game = ({ gameID }) => {
   useEffect(async () => {
     const { data } = await axios.get('/user/data')
     setEarnings(data.earnings)
-    console.log(data)
+    // console.log(data)
   }, [betting, newGame])
 
   useEffect(() => {
     socket.on('status', ({ wait, msg, new_game }) => {
-      console.log('status')
-      console.log({ wait, msg, new_game })
+      // console.log('status')
+      // console.log({ wait, msg, new_game })
       if (new_game) {
         setNewGame(new_game)
       }
@@ -136,13 +137,13 @@ const Game = ({ gameID }) => {
     })
 
     socket.on('table_cards', ({ table: t }) => {
-      console.log('table_cards')
-      console.log(t)
+      // console.log('table_cards')
+      // console.log(t)
       setTable(t)
     })
 
     socket.on('reset', () => {
-      console.log('reset')
+      // console.log('reset')
       reset()
     })
 
@@ -183,7 +184,7 @@ const Game = ({ gameID }) => {
   }, [socket])
 
   useEffect(() => {
-    console.log(messages)
+    // console.log(messages)
   }, [messages])
 
   // useEffect(async () => {
@@ -219,6 +220,9 @@ const Game = ({ gameID }) => {
 
   return (
     <div style={{ paddingLeft: 50 }}>
+      <Typography.Title level={1}>
+        {`Game #${gameID + 1}`}
+      </Typography.Title>
       <br />
       <p>{message}</p>
       <br />
