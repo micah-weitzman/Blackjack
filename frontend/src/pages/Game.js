@@ -122,7 +122,15 @@ const Game = ({ gameID }) => {
   }, [betting, newGame])
 
   useEffect(() => {
-    socket.on('status', ({ wait, msg, new_game }) => {
+    socket.on('status', ({
+      wait,
+      msg,
+      new_game,
+      gameID: g_id,
+    }) => {
+      if (g_id !== gameID) {
+        return
+      }
       // console.log('status')
       // console.log({ wait, msg, new_game })
       if (new_game) {
@@ -136,22 +144,35 @@ const Game = ({ gameID }) => {
       }
     })
 
-    socket.on('table_cards', ({ table: t }) => {
+    socket.on('table_cards', ({ table: t, gameID: g_id }) => {
+      if (g_id !== gameID) {
+        return
+      }
       // console.log('table_cards')
       // console.log(t)
       setTable(t)
     })
 
-    socket.on('reset', () => {
+    socket.on('reset', ({ gameID: g_id }) => {
+      if (g_id !== gameID) {
+        return
+      }
       // console.log('reset')
       reset()
     })
 
-    socket.on('status_bet', () => {
+    socket.on('status_bet', ({ gameID: g_id }) => {
+      if (g_id !== gameID) {
+        return
+      }
       setBetting(true)
     })
 
-    socket.on('round-done', async ({ won, tied }) => {
+    socket.on('round-done', async ({ won, tied, gameID: g_id }) => {
+      if (g_id !== gameID) {
+        return
+      }
+
       if (won) {
         await axios.post('/user/wonRound', { bet })
       } else if (tied) {

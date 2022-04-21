@@ -77,11 +77,13 @@ io.on('connection', async socket => {
 
     if (games[gameID].users.length > games[gameID].max_active_users) {
       await socket.emit('status', {
+        gameID,
         wait: true,
         msg: 'Max players playing',
       })
     } else if (games[gameID].running) {
       await socket.emit('status', {
+        gameID,
         wait: true,
         msg: 'Waiting for next round',
       })
@@ -96,6 +98,7 @@ io.on('connection', async socket => {
   socket.on('bet', async ({ bet, gameID }) => {
     console.log(`User bet: ${bet}`)
     await socket.emit('status', {
+      gameID,
       wait: true,
       msg: 'Waiting for other players to place bets',
     })
@@ -105,6 +108,7 @@ io.on('connection', async socket => {
   socket.on('hit', async ({ gameID }) => {
     console.log('user hit')
     await user.socket.emit('status', {
+      gameID,
       wait: false,
       msg: 'Your turn',
     })
@@ -115,6 +119,7 @@ io.on('connection', async socket => {
   socket.on('stand', async ({ gameID }) => {
     console.log('user stand')
     await socket.emit('status', {
+      gameID,
       wait: true,
       msg: 'Waiting for other players',
     })
