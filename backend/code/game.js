@@ -64,8 +64,8 @@ class Game {
       _this.deal_card(user)
       _this.deal_card(user)
     })
-    console.log('Active users')
-    console.log(this.active_users.length)
+    // console.log('Active users')
+    // console.log(this.active_users.length)
     this.update_user_view()
     this.notify_next_player()
   }
@@ -130,8 +130,8 @@ class Game {
     // })
     // console.log('[')
     this.next_player += 1
-    console.log('notify_next_player')
-    console.log(this.active_users[this.next_player])
+    // console.log('notify_next_player')
+    // console.log(this.active_users[this.next_player])
     if (this.next_player >= this.active_users.length || this.active_users[this.next_player].dealer) {
       this.dealer_act()
       this.finalize_game()
@@ -153,7 +153,7 @@ class Game {
     console.log('Time for dealer to act')
     let total = 0
     const { active_users } = this
-    console.log(active_users)
+    // console.log(active_users)
     const [dealer, ...rest] = active_users
     while (total < 17) {
       this.deal_card(dealer)

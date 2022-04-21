@@ -44,11 +44,12 @@ router.post('/lostRound', isAuth, async (req, res, next) => {
 router.post('/wonRound', isAuth, async (req, res, next) => {
   const { bet } = req.body
   const { authID } = req.session.passport.user
+  const b = 2 * bet
   try {
     await User.findOneAndUpdate(
       { authID },
       {
-        $inc: { gamesPlayed: 1, gamesWon: 1, earnings: (2 * bet) },
+        $inc: { gamesPlayed: 1, gamesWon: 1, earnings: b },
       },
     ).exec()
     res.send('Updated')
